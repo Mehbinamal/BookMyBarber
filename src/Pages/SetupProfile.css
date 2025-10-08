@@ -1,0 +1,112 @@
+.setup-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f7d1ba, #f0e4d7);
+    font-family: "Poppins", sans-serif;
+  }
+  
+  .setup-card {
+    background: #fff;
+    padding: 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 420px;
+  }
+  
+  .setup-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+  }
+  
+  .setup-subtitle {
+    text-align: center;
+    color: #777;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .setup-form input,
+  .setup-form textarea {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    transition: 0.2s;
+  }
+  
+  .setup-form input:focus,
+  .setup-form textarea:focus {
+    border-color: #ff7b00;
+    box-shadow: 0 0 0 3px rgba(255, 123, 0, 0.2);
+  }
+  
+  .role-section {
+    margin-bottom: 1rem;
+  }
+  
+  .role-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+    color: #444;
+  }
+  
+  .role-options {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .role-btn {
+    flex: 1;
+    padding: 10px;
+    background: #eee;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  
+  .role-btn.active {
+    background: #ff7b00;
+    color: white;
+    box-shadow: 0 3px 10px rgba(255, 123, 0, 0.3);
+  }
+  
+  .role-btn:hover {
+    background: #ffb366;
+    color: white;
+  }
+  
+  button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    background: #ff7b00;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 0.5rem;
+  }
+  
+  button[type="submit"]:hover {
+    background: #e66e00;
+  }
+  
+  .message {
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 500;
+    color: #333;
+  }
+  
