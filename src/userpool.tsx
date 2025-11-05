@@ -1,0 +1,1 @@
+import { CognitoUserpool } from 'amazon-cognito-identity-js';
