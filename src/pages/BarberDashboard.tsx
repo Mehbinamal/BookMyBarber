@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Calendar, Users, DollarSign, Star, Clock } from "lucide-react";
+import ShopProfileForm from "@/components/profile/ShopProfileForm";
 
 const BarberDashboard = () => {
   const navigate = useNavigate();
@@ -188,10 +189,12 @@ const BarberDashboard = () => {
           </TabsContent>
 
           <TabsContent value="profile">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Shop Profile</h3>
-              <p className="text-muted-foreground">Update your shop information, photos, and contact details.</p>
-            </Card>
+            {user && (
+              <ShopProfileForm
+                shopId={user.id}
+                ownerUserId={user.id}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
