@@ -5,14 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Search, MapPin, Star, Calendar } from "lucide-react";
 import UserPool from "../userpool";
 import { useToast } from "@/hooks/use-toast";
+import BarberProfileView from "@/components/barber/BarberProfileView";
+import BookingDialog from "@/components/barber/BookingDialog";
+import CustomerBookings from "@/components/customer/CustomerBookings";
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(mockAuth.getCurrentUser());
   const { toast } = useToast();
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+  const [profileViewOpen, setProfileViewOpen] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user || user.role !== "customer") {
@@ -94,98 +102,173 @@ const CustomerDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Search Section */}
-        <div className="mb-8 space-y-4">
-          <h1 className="text-3xl font-bold">Find Your Barber</h1>
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or location..."
-                className="pl-10"
-              />
-            </div>
-            <Button>
-              <MapPin className="w-4 h-4 mr-2" />
-              Near Me
-            </Button>
-          </div>
-        </div>
+        <Tabs defaultValue="browse" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="browse">Browse Barbers</TabsTrigger>
+            <TabsTrigger value="bookings">My Bookings</TabsTrigger>
+          </TabsList>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-accent">0</p>
-            <p className="text-sm text-muted-foreground">Upcoming</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-accent">0</p>
-            <p className="text-sm text-muted-foreground">Completed</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-accent">3</p>
-            <p className="text-sm text-muted-foreground">Nearby</p>
-          </Card>
-        </div>
-
-        {/* Barbers List */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Barbers Near You</h2>
-          <div className="grid gap-6">
-            {mockBarbers.map((barber) => (
-              <Card key={barber.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="md:flex">
-                  <div className="md:w-1/3 h-48 md:h-auto">
-                    <img
-                      src={barber.image}
-                      alt={barber.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-6 md:w-2/3 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-semibold">{barber.name}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                          <MapPin className="w-4 h-4" />
-                          {barber.address} • {barber.distance}
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="bg-accent/10 text-accent">
-                        {barber.price}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-accent text-accent" />
-                        <span className="font-semibold">{barber.rating}</span>
-                        <span className="text-muted-foreground">({barber.reviews})</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {barber.services.map((service) => (
-                        <Badge key={service} variant="outline">
-                          {service}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Button className="flex-1">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Book Now
-                      </Button>
-                      <Button variant="outline">View Profile</Button>
-                    </div>
-                  </div>
+          <TabsContent value="browse" className="space-y-6">
+            {/* Search Section */}
+            <div className="space-y-4">
+              <h1 className="text-3xl font-bold">Find Your Barber</h1>
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or location..."
+                    className="pl-10"
+                  />
                 </div>
+                <Button>
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Near Me
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="p-4 text-center">
+                <p className="text-2xl font-bold text-accent">0</p>
+                <p className="text-sm text-muted-foreground">Upcoming</p>
               </Card>
-            ))}
-          </div>
-        </div>
+              <Card className="p-4 text-center">
+                <p className="text-2xl font-bold text-accent">0</p>
+                <p className="text-sm text-muted-foreground">Completed</p>
+              </Card>
+              <Card className="p-4 text-center">
+                <p className="text-2xl font-bold text-accent">3</p>
+                <p className="text-sm text-muted-foreground">Nearby</p>
+              </Card>
+            </div>
+
+            {/* Barbers List */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Barbers Near You</h2>
+              <div className="grid gap-6">
+                {mockBarbers.map((barber) => (
+                  <Card key={barber.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="md:flex">
+                      <div className="md:w-1/3 h-48 md:h-auto">
+                        <img
+                          src={barber.image}
+                          alt={barber.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-6 md:w-2/3 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-xl font-semibold">{barber.name}</h3>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <MapPin className="w-4 h-4" />
+                              {barber.address} • {barber.distance}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-accent/10 text-accent">
+                            {barber.price}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-accent text-accent" />
+                            <span className="font-semibold">{barber.rating}</span>
+                            <span className="text-muted-foreground">({barber.reviews})</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {barber.services.map((service) => (
+                            <Badge key={service} variant="outline">
+                              {service}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-3">
+                          <Button
+                            className="flex-1"
+                            onClick={async () => {
+                              setSelectedShopId(barber.id);
+                              // Fetch services for this shop
+                              const apiUrl = import.meta.env.VITE_API_URL;
+                              if (apiUrl) {
+                                try {
+                                  const response = await fetch(`${apiUrl}/services?shopId=${barber.id}`);
+                                  if (response.ok) {
+                                    const data = await response.json();
+                                    setSelectedServices(data.services || []);
+                                  }
+                                } catch (error) {
+                                  console.error("Error fetching services:", error);
+                                }
+                              }
+                              setBookingDialogOpen(true);
+                            }}
+                          >
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Book Now
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedShopId(barber.id);
+                              setProfileViewOpen(true);
+                            }}
+                          >
+                            View Profile
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="bookings">
+            {user && <CustomerBookings userId={user.id} />}
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {/* Barber Profile View Dialog */}
+      {selectedShopId && (
+        <BarberProfileView
+          shopId={selectedShopId}
+          isOpen={profileViewOpen}
+          onClose={() => {
+            setProfileViewOpen(false);
+            setSelectedShopId(null);
+          }}
+        />
+      )}
+
+      {/* Booking Dialog */}
+      {selectedShopId && (
+        <BookingDialog
+          shopId={selectedShopId}
+          services={selectedServices}
+          isOpen={bookingDialogOpen}
+          onClose={() => {
+            setBookingDialogOpen(false);
+            setSelectedShopId(null);
+            setSelectedServices([]);
+          }}
+          onSuccess={() => {
+            setBookingDialogOpen(false);
+            setSelectedShopId(null);
+            setSelectedServices([]);
+            toast({
+              title: "Booking Created",
+              description: "Your appointment has been scheduled successfully!",
+            });
+          }}
+        />
+      )}
     </div>
   );
 };
