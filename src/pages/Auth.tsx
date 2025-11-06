@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockAuth, UserRole } from "@/lib/mockAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Scissors, ArrowLeft } from "lucide-react";
+import UserPool from "../userpool";
+import { CognitoUserAttribute,AuthenticationDetails,CognitoUser, } from "amazon-cognito-identity-js";
 
 const Auth = () => {
   const { role } = useParams<{ role: UserRole }>();
@@ -18,55 +20,105 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    const user = mockAuth.login(email, password, role as UserRole);
-    
-    setIsLoading(false);
-    
-    if (user) {
+  
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get("email") as string;
+      const password = formData.get("password") as string;
+  
+      const authDetails = new AuthenticationDetails({
+        Username: email,
+        Password: password,
+      });
+  
+      const cognitoUser = new CognitoUser({
+        Username: email,
+        Pool: UserPool,
+      });
+  
+      // Wrap callback API in a Promise
+      const session = await new Promise((resolve, reject) => {
+        cognitoUser.authenticateUser(authDetails, {
+          onSuccess: resolve,
+          onFailure: reject,
+          newPasswordRequired: () => {
+            reject(new Error("New password required")); // or route to a screen to collect a new password
+          },
+          mfaRequired: () => {
+            reject(new Error("MFA required")); // or route to your MFA flow
+          },
+        });
+      });
+  
+      // (Optional) fetch attributes to get role
+      const serverRole: string | undefined = await new Promise((resolve, reject) => {
+        cognitoUser.getUserAttributes((err, attrs) => {
+          if (err) return resolve(undefined); // don’t block login on this
+          const found = attrs?.find(a => a.getName() === "custom:Role")?.getValue();
+          resolve(found);
+        });
+      });
+  
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
-      navigate(role === "customer" ? "/customer" : "/barber");
-    } else {
+  
+      const routeRole = serverRole || (role as string);
+      navigate(routeRole === "customer" ? "/customer" : "/barber");
+    } catch (err: any) {
       toast({
         title: "Login failed",
-        description: "Please check your credentials.",
+        description: err?.message ?? "Please check your credentials.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const name = formData.get("name") as string;
-
-    const user = mockAuth.signup(email, password, role as UserRole, name);
-    
-    setIsLoading(false);
-    
-    if (user) {
+  
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get("email") as string;
+      const password = formData.get("password") as string;
+      const name = formData.get("name") as string;
+  
+      // role is already in your component state/props
+      const attributeList = [
+        new CognitoUserAttribute({ Name: "email", Value: email }),
+        new CognitoUserAttribute({ Name: "name", Value: name }),
+        new CognitoUserAttribute({ Name: "custom:Role", Value: role as string }) // 🔹 custom attribute
+      ];
+  
+      // Wrap Cognito callback in a Promise for async/await
+      const signupPromise = new Promise((resolve, reject) => {
+        UserPool.signUp(email, password, attributeList, null, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+      });
+  
+      const data = await signupPromise;
+  
       toast({
         title: "Account created!",
         description: "Welcome to Book My Barber.",
       });
+  
       navigate(role === "customer" ? "/customer" : "/barber");
-    } else {
+    } catch (error: any) {
+      console.error("Signup error:", error);
       toast({
         title: "Signup failed",
-        description: "Please try again.",
+        description: error.message || "Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
