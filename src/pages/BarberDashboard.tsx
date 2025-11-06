@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Calendar, Users, DollarSign, Star, Clock } from "lucide-react";
 import ShopProfileForm from "@/components/profile/ShopProfileForm";
+import ServicesForm from "@/components/services/ServicesForm";
+import ScheduleForm from "@/components/schedule/ScheduleForm";
 
 const BarberDashboard = () => {
   const navigate = useNavigate();
@@ -175,17 +177,11 @@ const BarberDashboard = () => {
           </TabsContent>
 
           <TabsContent value="services">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Manage Services</h3>
-              <p className="text-muted-foreground">Configure your services, pricing, and durations here.</p>
-            </Card>
+            {user && <ServicesForm shopId={user.id} />}
           </TabsContent>
 
           <TabsContent value="schedule">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Working Hours</h3>
-              <p className="text-muted-foreground">Set your availability and block time slots.</p>
-            </Card>
+            {user && <ScheduleForm shopId={user.id} />}
           </TabsContent>
 
           <TabsContent value="profile">
