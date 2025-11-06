@@ -6,10 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { LogOut, Search, MapPin, Star, Calendar } from "lucide-react";
+import UserPool from "../userpool";
+import { useToast } from "@/hooks/use-toast";
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(mockAuth.getCurrentUser());
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user || user.role !== "customer") {
@@ -18,7 +21,15 @@ const CustomerDashboard = () => {
   }, [user, navigate]);
 
   const handleLogout = () => {
-    mockAuth.logout();
+    mockAuth.logout(); // clear localStorage
+    const cognitoUser = UserPool.getCurrentUser();
+    if (cognitoUser) {
+      cognitoUser.signOut(); // clears tokens and Cognito session
+    }
+    toast({
+      title: "Logged out successfully",
+      description: "See you again soon!",
+    });
     navigate("/");
   };
 

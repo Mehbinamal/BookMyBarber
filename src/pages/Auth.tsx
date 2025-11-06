@@ -50,21 +50,43 @@ const Auth = () => {
         });
       });
   
-      // (Optional) fetch attributes to get role
-      const serverRole: string | undefined = await new Promise((resolve, reject) => {
+      // Fetch user attributes to get role and other info
+      const userAttributes: { role?: string; email?: string; name?: string } = await new Promise((resolve, reject) => {
         cognitoUser.getUserAttributes((err, attrs) => {
-          if (err) return resolve(undefined); // don’t block login on this
-          const found = attrs?.find(a => a.getName() === "custom:Role")?.getValue();
-          resolve(found);
+          if (err) {
+            // If we can't get attributes, use the role from URL params
+            resolve({ role: role as string, email });
+            return;
+          }
+          const roleAttr = attrs?.find(a => a.getName() === "custom:Role")?.getValue();
+          const emailAttr = attrs?.find(a => a.getName() === "email")?.getValue();
+          const nameAttr = attrs?.find(a => a.getName() === "name")?.getValue();
+          resolve({
+            role: roleAttr,
+            email: emailAttr || email,
+            name: nameAttr,
+          });
         });
       });
-  
+
+      // Normalize role to lowercase (Cognito might return "Customer" but we need "customer")
+      const normalizedRole = (userAttributes.role || role || "").toLowerCase() as UserRole;
+      
+      // Save user to localStorage so dashboards can access it
+      const userData = {
+        id: email, // Use email as ID for now
+        email: userAttributes.email || email,
+        role: normalizedRole,
+        name: userAttributes.name,
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
+
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
-  
-      const routeRole = serverRole || (role as string);
+
+      const routeRole = normalizedRole;
       navigate(routeRole === "customer" ? "/customer" : "/barber");
     } catch (err: any) {
       toast({
@@ -103,12 +125,24 @@ const Auth = () => {
       });
   
       const data = await signupPromise;
-  
+
+      // Normalize role to lowercase to ensure consistency
+      const normalizedRole = (role || "").toLowerCase() as UserRole;
+      
+      // Save user to localStorage so dashboards can access it
+      const userData = {
+        id: email,
+        email: email,
+        role: normalizedRole,
+        name: name,
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
+
       toast({
         title: "Account created!",
         description: "Welcome to Book My Barber.",
       });
-  
+
       navigate(role === "customer" ? "/customer" : "/barber");
     } catch (error: any) {
       console.error("Signup error:", error);

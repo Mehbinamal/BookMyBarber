@@ -43,6 +43,13 @@ export const mockAuth = {
 
   getCurrentUser: (): User | null => {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr) return null;
+    
+    const user = JSON.parse(userStr);
+    // Normalize role to lowercase to handle cases where Cognito returns "Customer" instead of "customer"
+    if (user && user.role) {
+      user.role = user.role.toLowerCase() as UserRole;
+    }
+    return user;
   },
 };
