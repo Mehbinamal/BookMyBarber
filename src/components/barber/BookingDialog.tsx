@@ -30,6 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { mockAuth } from "@/lib/mockAuth";
+import { apiFetch } from "@/lib/mockApi";
 import { format } from "date-fns";
 
 interface Service {
@@ -56,7 +57,7 @@ interface BookingDialogProps {
 
 const BookingDialog = ({
   shopId,
-  services,
+  services: propServices,
   isOpen,
   onClose,
   onSuccess,
@@ -65,6 +66,8 @@ const BookingDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [services, setServices] = useState<Service[]>(propServices || []);
+  const [isFetchingServices, setIsFetchingServices] = useState(false);
   const user = mockAuth.getCurrentUser();
 
   const form = useForm<BookingFormData>({
@@ -75,10 +78,116 @@ const BookingDialog = ({
     },
   });
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   const selectedDate = form.watch("date");
   const selectedServiceName = form.watch("serviceName");
+
+  // Fetch services if not provided or empty
+  useEffect(() => {
+    if (isOpen && shopId && (!propServices || propServices.length === 0)) {
+      fetchServices();
+    } else if (propServices && propServices.length > 0) {
+      setServices(propServices);
+    }
+  }, [isOpen, shopId, propServices]);
+
+  const fetchServices = async () => {
+    setIsFetchingServices(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(`${apiUrl}/services?shopId=${shopId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setServices(data.services || []);
+      } else {
+        // If API fails, use default mock services based on shopId
+        const defaultServices = getDefaultServicesForShop(shopId);
+        setServices(defaultServices);
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      // Fallback to default services
+      const defaultServices = getDefaultServicesForShop(shopId);
+      setServices(defaultServices);
+    } finally {
+      setIsFetchingServices(false);
+    }
+  };
+
+  // Helper function to get default services for a shop
+  const getDefaultServicesForShop = (shopId: string): Service[] => {
+    const defaultServicesMap: Record<string, Service[]> = {
+      "1": [
+        {
+          serviceId: "s1",
+          name: "Haircut",
+          description: "Professional haircut with styling",
+          price: 35,
+          duration: 30,
+        },
+        {
+          serviceId: "s2",
+          name: "Beard Trim",
+          description: "Precise beard trimming and shaping",
+          price: 20,
+          duration: 15,
+        },
+        {
+          serviceId: "s3",
+          name: "Hot Towel Shave",
+          description: "Traditional hot towel shave with premium products",
+          price: 45,
+          duration: 45,
+        },
+      ],
+      "2": [
+        {
+          serviceId: "s4",
+          name: "Haircut",
+          description: "Premium haircut with consultation",
+          price: 50,
+          duration: 45,
+        },
+        {
+          serviceId: "s5",
+          name: "Styling",
+          description: "Hair styling and product application",
+          price: 30,
+          duration: 30,
+        },
+        {
+          serviceId: "s6",
+          name: "Coloring",
+          description: "Professional hair coloring service",
+          price: 80,
+          duration: 90,
+        },
+      ],
+      "3": [
+        {
+          serviceId: "s7",
+          name: "Haircut",
+          description: "Modern fade and style",
+          price: 30,
+          duration: 30,
+        },
+        {
+          serviceId: "s8",
+          name: "Fade",
+          description: "Professional fade cut",
+          price: 35,
+          duration: 30,
+        },
+        {
+          serviceId: "s9",
+          name: "Line Up",
+          description: "Precise edge-up and line work",
+          price: 15,
+          duration: 15,
+        },
+      ],
+    };
+    return defaultServicesMap[shopId] || [];
+  };
 
   // Update selected service when service name changes
   useEffect(() => {
@@ -94,11 +203,12 @@ const BookingDialog = ({
   }, [selectedDate, shopId]);
 
   const fetchAvailableTimes = async () => {
-    if (!apiUrl || !selectedDate) return;
+    if (!selectedDate) return;
 
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const response = await fetch(
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(
         `${apiUrl}/bookings/available-times?shopId=${shopId}&date=${dateStr}`
       );
 
@@ -128,10 +238,10 @@ const BookingDialog = ({
   };
 
   const onSubmit = async (data: BookingFormData) => {
-    if (!apiUrl || !user) {
+    if (!user) {
       toast({
         title: "Error",
-        description: "API URL is not configured or user not found",
+        description: "User not found",
         variant: "destructive",
       });
       return;
@@ -148,7 +258,8 @@ const BookingDialog = ({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/bookings`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(`${apiUrl}/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,6 +276,9 @@ const BookingDialog = ({
       });
 
       if (response.ok) {
+        const responseData = await response.json().catch(() => ({}));
+        console.log("Booking created successfully:", responseData);
+        
         toast({
           title: "Success",
           description: "Booking created successfully!",
@@ -173,17 +287,19 @@ const BookingDialog = ({
         onSuccess();
       } else {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Booking creation failed:", errorData);
         toast({
           title: "Error",
-          description: errorData.error || "Failed to create booking",
+          description: errorData.error || `Failed to create booking (Status: ${response.status})`,
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error creating booking:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Error",
-        description: "Failed to create booking. Please try again.",
+        description: `Failed to create booking: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -204,41 +320,53 @@ const BookingDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="serviceName"
-              rules={{ required: "Please select a service" }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a service" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service.serviceId || service.name} value={service.name}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{service.name}</span>
-                            <span className="ml-4 text-sm text-muted-foreground">
-                              ${service.price} • {service.duration} min
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedService && selectedService.description && (
-                    <FormDescription>{selectedService.description}</FormDescription>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {isFetchingServices ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Loading services...</span>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="serviceName"
+                rules={{ required: "Please select a service" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={services.length === 0}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={services.length === 0 ? "No services available" : "Select a service"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {services.length === 0 ? (
+                          <SelectItem value="" disabled>
+                            No services available
+                          </SelectItem>
+                        ) : (
+                          services.map((service) => (
+                            <SelectItem key={service.serviceId || service.name} value={service.name}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{service.name}</span>
+                                <span className="ml-4 text-sm text-muted-foreground">
+                                  ${service.price} • {service.duration} min
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {selectedService && selectedService.description && (
+                      <FormDescription>{selectedService.description}</FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
@@ -312,17 +440,18 @@ const BookingDialog = ({
               </Card>
             )}
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading || !selectedService}>
-                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Confirm Booking
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading || !selectedService || services.length === 0}>
+                  {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Confirm Booking
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

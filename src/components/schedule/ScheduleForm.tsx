@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { apiFetch } from "@/lib/mockApi";
 
 interface DaySchedule {
   day: string;
@@ -61,19 +62,18 @@ const ScheduleForm = ({ shopId }: ScheduleFormProps) => {
     },
   });
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   // Fetch existing schedule on mount
   useEffect(() => {
     const fetchSchedule = async () => {
-      if (!shopId || !apiUrl) {
+      if (!shopId) {
         setIsFetching(false);
         return;
       }
 
       try {
         setIsFetching(true);
-        const response = await fetch(`${apiUrl}/schedule?shopId=${shopId}`);
+        const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+        const response = await apiFetch(`${apiUrl}/schedule?shopId=${shopId}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -129,21 +129,13 @@ const ScheduleForm = ({ shopId }: ScheduleFormProps) => {
     };
 
     fetchSchedule();
-  }, [shopId, apiUrl, form, toast]);
+  }, [shopId, form, toast]);
 
   const onSubmit = async (data: ScheduleData) => {
-    if (!apiUrl) {
-      toast({
-        title: "Error",
-        description: "API URL is not configured",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/schedule`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(`${apiUrl}/schedule`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

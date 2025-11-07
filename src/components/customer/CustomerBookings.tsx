@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calendar, Clock, MapPin, X } from "lucide-react";
 import { mockAuth } from "@/lib/mockAuth";
+import { apiFetch } from "@/lib/mockApi";
 import {
   Dialog,
   DialogContent,
@@ -38,44 +39,70 @@ const CustomerBookings = ({ userId }: CustomerBookingsProps) => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   useEffect(() => {
     if (userId) {
       fetchBookings();
     }
   }, [userId]);
 
-  const fetchBookings = async () => {
-    if (!apiUrl) {
-      setIsLoading(false);
-      return;
-    }
+  // Refresh bookings when tab becomes visible (user switches to bookings tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && userId) {
+        fetchBookings();
+      }
+    };
 
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    // Also listen for custom booking update events
+    const handleBookingUpdate = () => {
+      if (userId) {
+        fetchBookings();
+      }
+    };
+    
+    window.addEventListener("bookingUpdated", handleBookingUpdate);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("bookingUpdated", handleBookingUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const fetchBookings = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/bookings?customerId=${userId}`);
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      console.log("Fetching bookings for userId:", userId);
+      const response = await apiFetch(`${apiUrl}/bookings?customerId=${userId}`);
 
       if (response.ok) {
         const data = await response.json();
+        console.log("Bookings fetched:", data.bookings);
         setBookings(data.bookings || []);
       } else if (response.status === 404) {
+        console.log("No bookings found (404)");
         setBookings([]);
       } else {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Error fetching bookings:", errorData);
         toast({
           title: "Error",
-          description: errorData.error || "Failed to fetch bookings",
+          description: errorData.error || `Failed to fetch bookings (Status: ${response.status})`,
           variant: "destructive",
         });
+        setBookings([]);
       }
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch bookings. Please try again.",
+        description: `Failed to fetch bookings: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
+      setBookings([]);
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +114,12 @@ const CustomerBookings = ({ userId }: CustomerBookingsProps) => {
   };
 
   const handleCancelConfirm = async () => {
-    if (!selectedBooking || !apiUrl) return;
+    if (!selectedBooking) return;
 
     setIsCancelling(true);
     try {
-      const response = await fetch(`${apiUrl}/bookings/${selectedBooking.bookingId}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(`${apiUrl}/bookings/${selectedBooking.bookingId}`, {
         method: "DELETE",
       });
 

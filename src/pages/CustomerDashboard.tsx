@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mockAuth } from "@/lib/mockAuth";
+import { apiFetch } from "@/lib/mockApi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -192,18 +193,21 @@ const CustomerDashboard = () => {
                             className="flex-1"
                             onClick={async () => {
                               setSelectedShopId(barber.id);
-                              // Fetch services for this shop
-                              const apiUrl = import.meta.env.VITE_API_URL;
-                              if (apiUrl) {
-                                try {
-                                  const response = await fetch(`${apiUrl}/services?shopId=${barber.id}`);
-                                  if (response.ok) {
-                                    const data = await response.json();
-                                    setSelectedServices(data.services || []);
-                                  }
-                                } catch (error) {
-                                  console.error("Error fetching services:", error);
+                              // Fetch services for this shop (optional - BookingDialog will fetch if empty)
+                              try {
+                                const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+                                const response = await apiFetch(`${apiUrl}/services?shopId=${barber.id}`);
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  setSelectedServices(data.services || []);
+                                } else {
+                                  // Set empty array - BookingDialog will fetch with fallback
+                                  setSelectedServices([]);
                                 }
+                              } catch (error) {
+                                console.error("Error fetching services:", error);
+                                // Set empty array - BookingDialog will fetch with fallback
+                                setSelectedServices([]);
                               }
                               setBookingDialogOpen(true);
                             }}
@@ -266,6 +270,10 @@ const CustomerDashboard = () => {
               title: "Booking Created",
               description: "Your appointment has been scheduled successfully!",
             });
+            // Trigger refresh of bookings list
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("bookingUpdated"));
+            }
           }}
         />
       )}

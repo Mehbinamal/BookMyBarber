@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { apiFetch } from "@/lib/mockApi";
 
 interface Service {
   serviceId?: string;
@@ -57,19 +58,18 @@ const ServicesForm = ({ shopId }: ServicesFormProps) => {
     name: "services",
   });
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   // Fetch existing services on mount
   useEffect(() => {
     const fetchServices = async () => {
-      if (!shopId || !apiUrl) {
+      if (!shopId) {
         setIsFetching(false);
         return;
       }
 
       try {
         setIsFetching(true);
-        const response = await fetch(`${apiUrl}/services?shopId=${shopId}`);
+        const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+        const response = await apiFetch(`${apiUrl}/services?shopId=${shopId}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -111,21 +111,13 @@ const ServicesForm = ({ shopId }: ServicesFormProps) => {
     };
 
     fetchServices();
-  }, [shopId, apiUrl, form, toast]);
+  }, [shopId, form, toast]);
 
   const onSubmit = async (data: ServicesData) => {
-    if (!apiUrl) {
-      toast({
-        title: "Error",
-        description: "API URL is not configured",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/services`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(`${apiUrl}/services`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

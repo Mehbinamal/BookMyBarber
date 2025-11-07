@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { apiFetch } from "@/lib/mockApi";
 
 interface ShopProfile {
   shopId: string;
@@ -47,19 +48,18 @@ const ShopProfileForm = ({ shopId, ownerUserId }: ShopProfileFormProps) => {
     },
   });
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   // Fetch existing profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!shopId || !apiUrl) {
+      if (!shopId) {
         setIsFetching(false);
         return;
       }
 
       try {
         setIsFetching(true);
-        const response = await fetch(`${apiUrl}/shops?shopId=${shopId}`);
+        const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+        const response = await apiFetch(`${apiUrl}/shops?shopId=${shopId}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -102,21 +102,13 @@ const ShopProfileForm = ({ shopId, ownerUserId }: ShopProfileFormProps) => {
     };
 
     fetchProfile();
-  }, [shopId, ownerUserId, apiUrl, form, toast]);
+  }, [shopId, ownerUserId, form, toast]);
 
   const onSubmit = async (data: ShopProfile) => {
-    if (!apiUrl) {
-      toast({
-        title: "Error",
-        description: "API URL is not configured",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/shops`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      const response = await apiFetch(`${apiUrl}/shops`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

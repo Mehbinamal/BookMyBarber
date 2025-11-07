@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, MapPin, Star, Phone, Clock, Calendar, X } from "lucide-react";
 import BookingDialog from "./BookingDialog";
 import { mockAuth } from "@/lib/mockAuth";
+import { apiFetch } from "@/lib/mockApi";
 
 interface BarberProfile {
   shopId: string;
@@ -56,8 +57,6 @@ const BarberProfileView = ({ shopId, isOpen, onClose }: BarberProfileViewProps) 
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const user = mockAuth.getCurrentUser();
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   useEffect(() => {
     if (isOpen && shopId) {
       fetchBarberData();
@@ -65,19 +64,19 @@ const BarberProfileView = ({ shopId, isOpen, onClose }: BarberProfileViewProps) 
   }, [isOpen, shopId]);
 
   const fetchBarberData = async () => {
-    if (!apiUrl) return;
-
     setIsLoading(true);
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://mock-api";
+      
       // Fetch profile
-      const profileRes = await fetch(`${apiUrl}/shops?shopId=${shopId}`);
+      const profileRes = await apiFetch(`${apiUrl}/shops?shopId=${shopId}`);
       if (profileRes.ok) {
         const profileData = await profileRes.json();
         setProfile(profileData);
       }
 
       // Fetch services
-      const servicesRes = await fetch(`${apiUrl}/services?shopId=${shopId}`);
+      const servicesRes = await apiFetch(`${apiUrl}/services?shopId=${shopId}`);
       if (servicesRes.ok) {
         const servicesData = await servicesRes.json();
         setServices(servicesData.services || []);
@@ -85,7 +84,7 @@ const BarberProfileView = ({ shopId, isOpen, onClose }: BarberProfileViewProps) 
 
       // Fetch customer bookings with this barber
       if (user?.id) {
-        const bookingsRes = await fetch(`${apiUrl}/bookings?customerId=${user.id}&shopId=${shopId}`);
+        const bookingsRes = await apiFetch(`${apiUrl}/bookings?customerId=${user.id}&shopId=${shopId}`);
         if (bookingsRes.ok) {
           const bookingsData = await bookingsRes.json();
           setBookings(bookingsData.bookings || []);
